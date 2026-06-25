@@ -555,13 +555,17 @@ const SWEDISH=[
 function onSearchInput(val){
   clearTimeout(searchTimer);
   const sug=document.getElementById('suggestions'),btn=document.getElementById('fetch-btn'),chip=document.getElementById('ticker-chip-wrap');
-  if(!val||val.length<1){sug.className='suggestions';btn.disabled=true;chip.innerHTML='';currentTicker='';return;}
-  if(/^[A-Z0-9]{2,6}([.\-][A-Z0-9]+)?$/.test(val.trim().toUpperCase())){
-    currentTicker=val.trim().toUpperCase();
+  const trimmed=val.trim();
+  if(!trimmed||trimmed.length<1){sug.className='suggestions';btn.disabled=true;chip.innerHTML='';currentTicker='';return;}
+  // Only treat as a direct ticker if the user typed it in ALL CAPS (or it contains . or -),
+  // and it's short. Lowercase or mixed-case input always triggers a name search.
+  const looksLikeTicker = /^[A-Z0-9]{1,6}([.\-][A-Z0-9]+)?$/.test(trimmed) && trimmed===trimmed.toUpperCase() && /[A-Z]/.test(trimmed);
+  if(looksLikeTicker){
+    currentTicker=trimmed;
     chip.innerHTML='<span class="ticker-chip"><i class="ti ti-ticket" style="font-size:12px"></i>'+currentTicker+'</span>';
     btn.disabled=!loadApiKey();sug.className='suggestions';return;
   }
-  searchTimer=setTimeout(()=>doSearch(val),300);
+  searchTimer=setTimeout(()=>doSearch(trimmed),300);
 }
 function onSearchKey(e){
   if(e.key==='Enter'){document.getElementById('suggestions').className='suggestions';if(currentTicker&&loadApiKey())fetchData();}
@@ -625,7 +629,12 @@ async function fetchData(){
     ]);
     if(pR.status===401||pR.status===403)throw new Error('Ogiltig API-nyckel (401/403)');
     if(pR.status===429)throw new Error('För många anrop idag (rate limit)');
-    const [pd,rd,md]=await Promise.all([pR.json(),rR.json(),mR.json()]);
+    let pd,rd,md;
+    try{
+      [pd,rd,md]=await Promise.all([pR.json(),rR.json(),mR.json()]);
+    }catch(parseErr){
+      throw new Error('Endpointen kräver en högre prenumerationsnivå, eller felaktigt svar från FMP');
+    }
     if(pd&&pd['Error Message'])throw new Error(pd['Error Message']);
     if(!pd||!pd[0])throw new Error('Ingen data — kontrollera ticker eller börstäckning (gratisnivå = i huvudsak US-börser)');
     const p=pd[0],r=(rd&&rd[0])||{},m=(md&&md[0])||{};
