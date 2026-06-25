@@ -686,22 +686,23 @@ async function fetchData(){
   setStatus('Hämtar från Financial Modeling Prep…','info');
   document.getElementById('fsummary').className='fsummary';
   try{
-    const [pR,rR,mR]=await Promise.all([
-      fetch(`https://financialmodelingprep.com/stable/profile?symbol=${currentTicker}&apikey=${apiKey}`),
-      fetch(`https://financialmodelingprep.com/stable/ratios-ttm?symbol=${currentTicker}&apikey=${apiKey}`),
-      fetch(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${currentTicker}&apikey=${apiKey}`)
-    ]);
+    const pR=await fetch(`https://financialmodelingprep.com/stable/profile?symbol=${currentTicker}&apikey=${apiKey}`);
     if(pR.status===401||pR.status===403)throw new Error('Ogiltig API-nyckel (401/403)');
-    if(pR.status===429)throw new Error('För många anrop idag (rate limit)');
-    let pd,rd,md;
-    try{
-      [pd,rd,md]=await Promise.all([pR.json(),rR.json(),mR.json()]);
-    }catch(parseErr){
-      throw new Error('Endpointen kräver en högre prenumerationsnivå, eller felaktigt svar från FMP');
-    }
+    if(pR.status===429)throw new Error('Daglig gräns nådd (429) — försök igen imorgon');
+    let pd;
+    try{ pd=await pR.json(); }catch(e){ throw new Error('Oväntat svar från profile-endpoint'); }
     if(pd&&pd['Error Message'])throw new Error(pd['Error Message']);
-    if(!pd||!pd[0])throw new Error('Ingen data — kontrollera ticker eller börstäckning (gratisnivå = i huvudsak US-börser)');
-    const p=pd[0],r=(rd&&rd[0])||{},m=(md&&md[0])||{};
+    if(!pd||!pd[0])throw new Error('Ingen profildata — kontrollera ticker eller börstäckning (gratisnivå = i huvudsak US-börser)');
+    const p=pd[0];
+    let r={},m={};
+    try{
+      const rR=await fetch(`https://financialmodelingprep.com/stable/ratios-ttm?symbol=${currentTicker}&apikey=${apiKey}`);
+      if(rR.ok){const rd=await rR.json();if(Array.isArray(rd)&&rd[0])r=rd[0];}
+    }catch(e){/* ratios-ttm unavailable on this plan — continue without */}
+    try{
+      const mR=await fetch(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${currentTicker}&apikey=${apiKey}`);
+      if(mR.ok){const md=await mR.json();if(Array.isArray(md)&&md[0])m=md[0];}
+    }catch(e){/* key-metrics-ttm unavailable on this plan — continue without */}
     const price=p.price;
     const pe=r.priceToEarningsRatioTTM!=null?r.priceToEarningsRatioTTM:(m.peRatioTTM!=null?m.peRatioTTM:null);
     const ps=r.priceToSalesRatioTTM!=null?r.priceToSalesRatioTTM:(m.priceToSalesRatioTTM!=null?m.priceToSalesRatioTTM:null);
