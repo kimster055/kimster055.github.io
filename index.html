@@ -10,7 +10,19 @@
 :root{--bg:#fff;--bg2:#f5f5f3;--bg3:#ededeb;--text:#1a1a18;--text2:#666660;--text3:#999993;--border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);--ib:#e6f1fb;--it:#185fa5;--ibr:rgba(24,95,165,0.35);--r:8px;--rl:12px;}
 @media(prefers-color-scheme:dark){:root{--bg:#1c1c1a;--bg2:#252522;--bg3:#2e2e2b;--text:#f0efe8;--text2:#a0a09a;--text3:#666660;--border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);--ib:#0c2540;--it:#85b7eb;--ibr:rgba(133,183,235,0.3);}}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;padding:2rem 1rem;}
-.wrap{max-width:700px;margin:0 auto;}
+.page{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:700px 1fr;gap:1.5rem;align-items:start;}
+.wrap{max-width:700px;}
+.sidebar{position:sticky;top:1.5rem;}
+.ticker-panel{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:1rem 1.1rem;max-height:calc(100vh - 3rem);overflow-y:auto;}
+.tp-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px;position:sticky;top:0;background:var(--bg);padding-bottom:4px;}
+.tp-search{width:100%;font-size:12px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:6px 8px;color:var(--text);outline:none;margin-bottom:10px;}
+.tp-group-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin:10px 0 5px;}
+.tp-group-title:first-of-type{margin-top:0;}
+.tp-row{display:flex;justify-content:space-between;align-items:center;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:12px;gap:8px;}
+.tp-row:hover{background:var(--bg2);}
+.tp-name{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tp-sym{color:var(--it);font-family:monospace;font-size:11px;white-space:nowrap;flex-shrink:0;}
+@media(max-width:1020px){.page{grid-template-columns:1fr;}.sidebar{position:static;order:-1;}.ticker-panel{max-height:280px;}}
 h1{font-size:22px;font-weight:500;margin-bottom:4px;}
 .sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem;}
 .card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:1.1rem 1.25rem;margin-bottom:1rem;}
@@ -145,6 +157,7 @@ select{width:100%;font-size:13px;background:var(--bg);border:0.5px solid var(--b
 </style>
 </head>
 <body>
+<div class="page">
 <div class="wrap">
 <h1><i class="ti ti-chart-candle" style="font-size:20px;vertical-align:-3px;margin-right:6px"></i>Risk Management — Aktiechecklista</h1>
 <p class="sub">Swing trade · 1–60 dagar · 5–18% vinstmål</p>
@@ -449,6 +462,15 @@ select{width:100%;font-size:13px;background:var(--bg);border:0.5px solid var(--b
 </div>
 </div>
 
+<div class="sidebar">
+  <div class="ticker-panel">
+    <div class="tp-title"><i class="ti ti-list"></i> Tickerreferens</div>
+    <input type="text" class="tp-search" id="tp-search" placeholder="Filtrera lista…" oninput="filterTickerPanel(this.value)">
+    <div id="tp-list"></div>
+  </div>
+</div>
+</div>
+
 <script>
 // ── Detect file:// and show hosting banner ───────────────────────────
 if(location.protocol==='file:'){
@@ -551,6 +573,48 @@ const SWEDISH=[
   {s:'ERIC-A.ST',n:'Ericsson A'},{s:'VOLV-A.ST',n:'Volvo AB A'},{s:'SCA-B.ST',n:'SCA B'},
   {s:'TEL2-B.ST',n:'Tele2 B'},{s:'INDU-A.ST',n:'Industrivärden A'},{s:'INDU-C.ST',n:'Industrivärden C'},
 ];
+
+const US_STOCKS=[
+  {s:'AAPL',n:'Apple Inc.'},{s:'MSFT',n:'Microsoft Corp.'},{s:'GOOGL',n:'Alphabet (Google) A'},
+  {s:'AMZN',n:'Amazon.com'},{s:'NVDA',n:'NVIDIA Corp.'},{s:'META',n:'Meta Platforms'},
+  {s:'TSLA',n:'Tesla Inc.'},{s:'BRK-B',n:'Berkshire Hathaway B'},{s:'AVGO',n:'Broadcom Inc.'},
+  {s:'JPM',n:'JPMorgan Chase'},{s:'V',n:'Visa Inc.'},{s:'MA',n:'Mastercard Inc.'},
+  {s:'UNH',n:'UnitedHealth Group'},{s:'JNJ',n:'Johnson & Johnson'},{s:'WMT',n:'Walmart Inc.'},
+  {s:'XOM',n:'Exxon Mobil'},{s:'PG',n:'Procter & Gamble'},{s:'HD',n:'Home Depot'},
+  {s:'COST',n:'Costco Wholesale'},{s:'NFLX',n:'Netflix Inc.'},{s:'KO',n:'Coca-Cola Co.'},
+  {s:'PEP',n:'PepsiCo Inc.'},{s:'ADBE',n:'Adobe Inc.'},{s:'CRM',n:'Salesforce Inc.'},
+  {s:'AMD',n:'Advanced Micro Devices'},{s:'ORCL',n:'Oracle Corp.'},{s:'INTC',n:'Intel Corp.'},
+  {s:'PYPL',n:'PayPal Holdings'},{s:'DIS',n:'Walt Disney Co.'},{s:'NKE',n:'Nike Inc.'},
+  {s:'MCD',n:"McDonald's Corp."},{s:'ABT',n:'Abbott Laboratories'},{s:'PFE',n:'Pfizer Inc.'},
+  {s:'TMO',n:'Thermo Fisher Scientific'},{s:'CSCO',n:'Cisco Systems'},{s:'ACN',n:'Accenture plc'},
+  {s:'LIN',n:'Linde plc'},{s:'WFC',n:'Wells Fargo'},{s:'BAC',n:'Bank of America'},
+  {s:'VZ',n:'Verizon Communications'},{s:'T',n:'AT&T Inc.'},{s:'IBM',n:'IBM Corp.'},
+  {s:'GE',n:'General Electric'},{s:'CAT',n:'Caterpillar Inc.'},{s:'BA',n:'Boeing Co.'},
+  {s:'UBER',n:'Uber Technologies'},{s:'SHOP',n:'Shopify Inc.'},{s:'SQ',n:'Block Inc.'},
+  {s:'SBUX',n:'Starbucks Corp.'},{s:'F',n:'Ford Motor Co.'},{s:'GM',n:'General Motors'},
+  {s:'PLTR',n:'Palantir Technologies'},{s:'COIN',n:'Coinbase Global'},{s:'SPOT',n:'Spotify Technology'},
+  {s:'ABNB',n:'Airbnb Inc.'},{s:'SNOW',n:'Snowflake Inc.'},{s:'RBLX',n:'Roblox Corp.'},
+];
+
+function renderTickerPanel(filter){
+  const list=document.getElementById('tp-list');
+  const f=(filter||'').toLowerCase();
+  const sw=SWEDISH.filter(s=>!f||s.n.toLowerCase().includes(f)||s.s.toLowerCase().includes(f));
+  const us=US_STOCKS.filter(s=>!f||s.n.toLowerCase().includes(f)||s.s.toLowerCase().includes(f));
+  let html='';
+  if(us.length){
+    html+='<div class="tp-group-title">🇺🇸 USA</div>';
+    html+=us.map(s=>`<div class="tp-row" onclick="selectTicker('${s.s}','${s.n.replace(/'/g,"\\'")}')"><span class="tp-name">${s.n}</span><span class="tp-sym">${s.s}</span></div>`).join('');
+  }
+  if(sw.length){
+    html+='<div class="tp-group-title">🇸🇪 Sverige</div>';
+    html+=sw.map(s=>`<div class="tp-row" onclick="selectTicker('${s.s}','${s.n.replace(/'/g,"\\'")}')"><span class="tp-name">${s.n}</span><span class="tp-sym">${s.s}</span></div>`).join('');
+  }
+  list.innerHTML=html||'<div style="font-size:12px;color:var(--text3);padding:8px 0">Inga matchningar</div>';
+}
+function filterTickerPanel(val){renderTickerPanel(val);}
+document.addEventListener('DOMContentLoaded',()=>renderTickerPanel(''));
+
 
 function onSearchInput(val){
   clearTimeout(searchTimer);
